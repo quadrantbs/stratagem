@@ -2,33 +2,14 @@ package middlewares
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-	"os"
+	"stratagem-server/helpers"
 	"stratagem-server/models"
+	"stratagem-server/types"
 	"strings"
 
 	"github.com/golang-jwt/jwt"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
-
-var jwtKey = []byte(os.Getenv("JWT_SECRET"))
-
-type Claims struct {
-	ID           primitive.ObjectID     `json:"_id"`
-	Username     string                 `json:"username"`
-	Email        string                 `json:"email"`
-	PhotoProfile string                 `json:"photo_profile"`
-	Role         string                 `json:"role"`
-	Data         map[string]interface{} `json:"data"`
-	jwt.StandardClaims
-}
-
-// Custom context key type
-type contextKey string
-
-// Define specific context key for player
-const contextKeyPlayer contextKey = "player"
 
 // AuthMiddleware verifies the JWT token and attaches the user info to the request context
 func AuthMiddleware(next http.Handler) http.Handler {
@@ -48,9 +29,9 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		// Parse and verify the JWT token
-		parsedToken, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+		parsedToken, err := jwt.ParseWithClaims(tokenString, &types.Claims{}, func(token *jwt.Token) (interface{}, error) {
 			// Return the secret key for validation
-			return jwtKey, nil
+			return helpers.JwtKey, nil
 		})
 
 		if err != nil {
@@ -59,7 +40,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		// Verify if the token is valid
-		if claims, ok := parsedToken.Claims.(*Claims); ok && parsedToken.Valid {
+		if claims, ok := parsedToken.Claims.(*types.Claims); ok && parsedToken.Valid {
 
 			// Create player from claims and add to context
 			player := models.Player{
@@ -72,8 +53,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			}
 
 			// Add player to context for downstream handlers
-			ctx := context.WithValue(r.Context(), contextKeyPlayer, player)
-			fmt.Println("auth middleware ctx:", ctx.Value(contextKeyPlayer))
+			ctx := context.WithValue(r.Context(), types.ContextKeyPlayer, player)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		} else {
 			http.Error(w, "Invalid token", http.StatusUnauthorized)

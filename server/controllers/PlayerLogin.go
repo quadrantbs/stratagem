@@ -4,30 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"os"
 	"stratagem-server/db"
+	"stratagem-server/helpers"
 	"stratagem-server/models"
+	"stratagem-server/types"
 	"time"
 
 	"github.com/golang-jwt/jwt"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
 )
-
-var jwtKey = []byte(os.Getenv("JWT_SECRET"))
-
-// Claims structure to embed custom claims in JWT
-type Claims struct {
-	ID           primitive.ObjectID     `json:"_id"`
-	Username     string                 `json:"username"`
-	Email        string                 `json:"email"`
-	PhotoProfile string                 `json:"photo_profile"`
-	Role         string                 `json:"role"`
-	Data         map[string]interface{} `json:"data"`
-	jwt.StandardClaims
-}
 
 // PlayerLogin handles player login and generates JWT token
 func PlayerLogin(w http.ResponseWriter, r *http.Request) {
@@ -77,7 +64,7 @@ func PlayerLogin(w http.ResponseWriter, r *http.Request) {
 
 	// Create the JWT claims, which includes the username and expiration time
 	expirationTime := time.Now().Add(24 * time.Hour)
-	claims := &Claims{
+	claims := &types.Claims{
 		ID:           existingPlayer.ID,
 		Username:     existingPlayer.Username,
 		Email:        existingPlayer.Email,
@@ -93,7 +80,7 @@ func PlayerLogin(w http.ResponseWriter, r *http.Request) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	// Sign the token with our secret key
-	tokenString, err := token.SignedString(jwtKey)
+	tokenString, err := token.SignedString(helpers.JwtKey)
 	if err != nil {
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 		return

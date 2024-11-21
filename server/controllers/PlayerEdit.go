@@ -3,22 +3,16 @@ package controllers
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"stratagem-server/db"
 	"stratagem-server/models"
+	"stratagem-server/types"
 	"time"
 
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
-
-// Custom context key type
-type contextKey string
-
-// Define specific context key for player
-const contextKeyPlayer contextKey = "player"
 
 const (
 	FieldUsername     = "username"
@@ -27,12 +21,11 @@ const (
 
 // PlayerEdit handles player data modification (username and photo profile)
 func PlayerEdit(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("playerEdit ctx:", r.Context())
 	// Extract the username from the URL
 	vars := mux.Vars(r)
 	username := vars["username"]
 	// Verify the authenticated player is the same as the one being edited
-	playerFromContext, ok := r.Context().Value(contextKeyPlayer).(models.Player)
+	playerFromContext, ok := r.Context().Value(types.ContextKeyPlayer).(models.Player)
 	if !ok {
 		http.Error(w, "Failed to retrieve player from context", http.StatusUnauthorized)
 		return
@@ -89,10 +82,6 @@ func PlayerEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return success response
-	type Response struct {
-		Message string `json:"message"`
-	}
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(Response{Message: "Player updated successfully"})
+	json.NewEncoder(w).Encode(types.Response{Message: "Player data updated successfully"})
 }
